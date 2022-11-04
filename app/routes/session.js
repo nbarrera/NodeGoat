@@ -76,18 +76,16 @@ function SessionHandler(db) {
                     return res.render("login", {
                         userName: userName,
                         password: "",
-                        loginError: invalidUserNameErrorMessage,
-                        //Fix for A2-2 Broken Auth - Uses identical error for both username, password error
-                        // loginError: errorMessage
+                        //Fix for: A2-2:2013 / A1:2021 Broken Auth - Uses identical error for both username, password error
+                        loginError: errorMessage,
                         environmentalScripts
                     });
                 } else if (err.invalidPassword) {
                     return res.render("login", {
                         userName: userName,
                         password: "",
-                        loginError: invalidPasswordErrorMessage,
-                        //Fix for A2-2 Broken Auth - Uses identical error for both username, password error
-                        // loginError: errorMessage
+                        //Fix for: A2-2:2013 / A1:2021 Broken Auth - Uses identical error for both username, password error
+                        loginError: errorMessage,
                         environmentalScripts
                     });
                 } else {
@@ -135,12 +133,11 @@ function SessionHandler(db) {
         const FNAME_RE = /^.{1,100}$/;
         const LNAME_RE = /^.{1,100}$/;
         const EMAIL_RE = /^[\S]+@[\S]+\.[\S]+$/;
-        const PASS_RE = /^.{1,20}$/;
-        /*
-        //Fix for A2-2 - Broken Authentication -  requires stronger password
+        //Fix for: A2:2013-2 / A1:2021 - Broken Authentication -  requires stronger password
         //(at least 8 characters with numbers and both lowercase and uppercase letters.)
-        const PASS_RE =/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
-        */
+        // ADDED 18 char limit as bcrypt has a limit of 72 bytes, also this was shown on GUI but not checked here.
+        // https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+        const PASS_RE =/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,18}$/;
 
         errors.userNameError = "";
         errors.firstNameError = "";
