@@ -89,15 +89,13 @@ MongoClient.connect(db, (err, db) => {
         key: "sessionId",
         */
 
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        // Fix for: A3:2010 - XSS / A3:2021 - Injection
         cookie: {
-            httpOnly: true
+            httpOnly: true,
             // Remember to start an HTTPS server to get this working
-            // secure: true
+            secure: true,
+            maxAge: 86400000 // 1 day in ms
         }
-        */
 
     }));
 
@@ -130,11 +128,9 @@ MongoClient.connect(db, (err, db) => {
     // Template system setup
     swig.setDefaults({
         // Autoescape disabled
-        autoescape: false
-        /*
-        // Fix for A3 - XSS, enable auto escaping
+        autoescape: false,
+        // Fix for: A3:2010 - XSS A3:2021 - Injection | enable auto escaping
         autoescape: true // default value
-        */
     });
 
     // Insecure HTTP connection
