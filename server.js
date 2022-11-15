@@ -15,8 +15,8 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
+
+// Fix: for A6:2013-Sensitive Data Exposure / A2:2021 Cryptographic Failure
 // Load keys for establishing secure HTTPS connection
 const fs = require("fs");
 const https = require("https");
@@ -25,7 +25,6 @@ const httpsOptions = {
     key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
     cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
 };
-*/
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -129,17 +128,10 @@ MongoClient.connect(db, (err, db) => {
         autoescape: true // default value
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
+    // Fix for: A6:2013-Sensitive Data Exposure / A2:2021 Cryptographic Failure
     // Use secure HTTPS protocol
     https.createServer(httpsOptions, app).listen(port, () => {
         console.log(`Express http server listening on port ${port}`);
     });
-    */
 
 });
