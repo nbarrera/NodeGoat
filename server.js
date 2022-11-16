@@ -26,6 +26,13 @@ const httpsOptions = {
     cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
 };
 
+// newest version of marked no longer sanitizes output, and recommends using DOMPurify to sanitize
+// in order to run DOMPurify on the server-side we will need jsdom to emulate dom on the server.
+const createDOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
+const window = new JSDOM('').window;
+const DOMPurify = createDOMPurify(window);
+
 MongoClient.connect(db, (err, db) => {
     if (err) {
         console.log("Error: DB: connect");
@@ -111,11 +118,11 @@ MongoClient.connect(db, (err, db) => {
 
 
     // Initializing marked library
-    // Fix for A9 - Insecure Dependencies
-    marked.setOptions({
-        sanitize: true
-    });
-    app.locals.marked = marked;
+    // Fix for: A9:2013 - Using Components with known Vuln / A6:2021 - Vuln and outdated components
+    // also incremented the marked version to latest and used correct semvar value ^ to keep it updated
+    app.locals.marked = markdown => {
+        return DOMPurify.sanitize(marked.parse(markdown);
+    }
 
     // Application routes
     routes(app, db);
