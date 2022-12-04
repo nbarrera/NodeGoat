@@ -15,8 +15,8 @@ const marked = require("marked");
 const app = express(); // Web framework to handle routing requests
 const routes = require("./app/routes");
 const { port, db, cookieSecret } = require("./config/config"); // Application config properties
-/*
-// Fix for A6-Sensitive Data Exposure
+
+// Fix: for A6:2013-Sensitive Data Exposure / A2:2021 Cryptographic Failure
 // Load keys for establishing secure HTTPS connection
 const fs = require("fs");
 const https = require("https");
@@ -25,7 +25,13 @@ const httpsOptions = {
     key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
     cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
 };
-*/
+
+// newest version of marked no longer sanitizes output, and recommends using DOMPurify to sanitize
+// in order to run DOMPurify on the server-side we will need jsdom to emulate dom on the server.
+const createDOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
+const window = new JSDOM('').window;
+const DOMPurify = createDOMPurify(window);
 
 MongoClient.connect(db, (err, db) => {
     if (err) {
@@ -35,8 +41,7 @@ MongoClient.connect(db, (err, db) => {
     }
     console.log(`Connected to the database`);
 
-    /*
-    // Fix for A5 - Security MisConfig
+    // Fix for: A5:2013:2021 - Security MisConfig
     // TODO: Review the rest of helmet options, like "xssFilter"
     // Remove default x-powered-by response header
     app.disable("x-powered-by");
@@ -55,14 +60,13 @@ MongoClient.connect(db, (err, db) => {
 
     // TODO: Add another vuln: https://github.com/helmetjs/helmet/issues/26
     // Enable XSS filter in IE (On by default)
-    // app.use(helmet.iexss());
+    app.use(helmet.iexss());
     // Now it should be used in hit way, but the README alerts that could be
     // dangerous, like specified in the issue.
-    // app.use(helmet.xssFilter({ setOnOldIE: true }));
+    app.use(helmet.xssFilter({ setOnOldIE: true }));
 
     // Forces browser to only use the Content-Type set in the response header instead of sniffing or guessing it
     app.use(nosniff());
-    */
 
     // Adding/ remove HTTP Headers for security
     app.use(favicon(__dirname + "/app/assets/favicon.ico"));
@@ -83,26 +87,21 @@ MongoClient.connect(db, (err, db) => {
         // Both mandatory in Express v4
         saveUninitialized: true,
         resave: true
-        /*
-        // Fix for A5 - Security MisConfig
+        // Fix for: A5:2013:2021 - Security MisConfig
         // Use generic cookie name
         key: "sessionId",
-        */
 
-        /*
-        // Fix for A3 - XSS
-        // TODO: Add "maxAge"
+        // Fix for: A3:2010 - XSS / A3:2021 - Injection
         cookie: {
-            httpOnly: true
+            httpOnly: true,
             // Remember to start an HTTPS server to get this working
-            // secure: true
+            secure: true,
+            maxAge: 86400000 // 1 day in ms
         }
-        */
 
     }));
 
-    /*
-    // Fix for A8 - CSRF
+    // Fix for: A8:2013 CSRF / A1:2021 Broken Access Control
     // Enable Express csrf protection
     app.use(csrf());
     // Make csrf token available in templates
@@ -110,7 +109,6 @@ MongoClient.connect(db, (err, db) => {
         res.locals.csrftoken = req.csrfToken();
         next();
     });
-    */
 
     // Register templating engine
     app.engine(".html", consolidate.swig);
@@ -120,11 +118,11 @@ MongoClient.connect(db, (err, db) => {
 
 
     // Initializing marked library
-    // Fix for A9 - Insecure Dependencies
-    marked.setOptions({
-        sanitize: true
-    });
-    app.locals.marked = marked;
+    // Fix for: A9:2013 - Using Components with known Vuln / A6:2021 - Vuln and outdated components
+    // also incremented the marked version to latest and used correct semvar value ^ to keep it updated
+    app.locals.marked = markdown => {
+        return DOMPurify.sanitize(marked.parse(markdown);
+    }
 
     // Application routes
     routes(app, db);
@@ -132,24 +130,15 @@ MongoClient.connect(db, (err, db) => {
     // Template system setup
     swig.setDefaults({
         // Autoescape disabled
-        autoescape: false
-        /*
-        // Fix for A3 - XSS, enable auto escaping
+        autoescape: false,
+        // Fix for: A3:2010 - XSS A3:2021 - Injection | enable auto escaping
         autoescape: true // default value
-        */
     });
 
-    // Insecure HTTP connection
-    http.createServer(app).listen(port, () => {
-        console.log(`Express http server listening on port ${port}`);
-    });
-
-    /*
-    // Fix for A6-Sensitive Data Exposure
+    // Fix for: A6:2013-Sensitive Data Exposure / A2:2021 Cryptographic Failure
     // Use secure HTTPS protocol
     https.createServer(httpsOptions, app).listen(port, () => {
         console.log(`Express http server listening on port ${port}`);
     });
-    */
 
 });
